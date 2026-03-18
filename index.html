@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="PrivVault – Zero-Knowledge Offline Password Manager by PrivMITLab" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; 
+                 script-src 'self' 'wasm-unsafe-eval'; 
+                 style-src 'self' 'unsafe-inline'; 
+                 img-src 'self' data:; 
+                 connect-src 'none'; 
+                 object-src 'none';" />
+    <title>PrivVault – PrivMITLab</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="assets/icon.svg" />
+</head>
+
+<body>
+
+    <!-- ==================== UNLOCK SCREEN ==================== -->
+    <div id="unlock-screen" class="screen active">
+        <div class="unlock-container">
+            <div class="brand-logo">
+                <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="26" width="40" height="28" rx="4" fill="#00ffa3" fill-opacity="0.15"
+                        stroke="#00ffa3" stroke-width="1.5" />
+                    <path d="M20 26V18C20 12.477 24.477 8 30 8C35.523 8 40 12.477 40 18V26" stroke="#00ffa3"
+                        stroke-width="1.5" stroke-linecap="round" />
+                    <circle cx="30" cy="40" r="4" fill="#00ffa3" />
+                    <line x1="30" y1="44" x2="30" y2="48" stroke="#00ffa3" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+            </div>
+            <h1 class="brand-name">PrivVault</h1>
+            <p class="brand-tagline">Your Data. Your Control. Zero Compromise.</p>
+            <p class="brand-sub">by <span class="accent">PrivMITLab</span></p>
+
+            <div class="unlock-card" id="unlock-card">
+                <!-- Login Form -->
+                <div id="login-view">
+                    <h2>Unlock Vault</h2>
+                    <p class="form-hint">Enter your master password to decrypt your vault.</p>
+                    <div class="form-group">
+                        <label for="master-password">Master Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="master-password" placeholder="Enter master password..."
+                                autocomplete="current-password" maxlength="512" />
+                            <button class="toggle-pw" id="toggle-unlock-pw" aria-label="Toggle password visibility"
+                                type="button">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    class="icon-sm">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="unlock-error" class="error-msg hidden"></div>
+                    <div id="retry-warning" class="warning-msg hidden"></div>
+                    <button class="btn btn-primary btn-full" id="unlock-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        Unlock Vault
+                    </button>
+                    <div class="divider">or</div>
+                    <div class="unlock-actions">
+                        <button class="btn btn-secondary" id="load-vault-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                class="btn-icon">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                            Load Vault File
+                        </button>
+                        <button class="btn btn-ghost" id="create-vault-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                class="btn-icon">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Create New Vault
+                        </button>
+                    </div>
+                    <input type="file" id="vault-file-input" accept=".privvault" class="hidden" />
+                </div>
+
+                <!-- Create Vault Form -->
+                <div id="create-view" class="hidden">
+                    <h2>Create New Vault</h2>
+                    <p class="form-hint">Choose a strong master password. This cannot be recovered.</p>
+                    <div class="form-group">
+                        <label for="new-master-pw">Master Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="new-master-pw" placeholder="Create master password..."
+                                autocomplete="new-password" maxlength="512" />
+                            <button class="toggle-pw" id="toggle-new-pw" type="button"
+                                aria-label="Toggle password visibility">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    class="icon-sm">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="strength-bar-wrap">
+                            <div class="strength-bar" id="strength-bar"></div>
+                        </div>
+                        <span class="strength-label" id="strength-label"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-master-pw">Confirm Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="confirm-master-pw" placeholder="Confirm master password..."
+                                autocomplete="new-password" maxlength="512" />
+                        </div>
+                    </div>
+                    <div id="create-error" class="error-msg hidden"></div>
+                    <button class="btn btn-primary btn-full" id="create-confirm-btn">
+                        Create Vault
+                    </button>
+                    <button class="btn btn-ghost btn-full" id="back-to-login-btn">
+                        ← Back
+                    </button>
+                </div>
+            </div>
+
+            <div class="unlock-footer">
+                <span class="security-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                    AES-256-GCM + Argon2id
+                </span>
+                <span class="security-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+                        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+                        <path d="M10.71 5.05A16 16 0 0 1 22.56 9" />
+                        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                        <line x1="12" y1="20" x2="12.01" y2="20" />
+                    </svg>
+                    100% Offline
+                </span>
+                <span class="security-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                    </svg>
+                    Zero Knowledge
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MAIN APP ==================== -->
+    <div id="app-screen" class="screen hidden">
+
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="btn-icon-only" id="sidebar-toggle" aria-label="Toggle sidebar" title="Toggle Sidebar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
+                </button>
+                <div class="logo-small">
+                    <svg viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="5" y="13" width="20" height="14" rx="2" fill="#00ffa3" fill-opacity="0.15"
+                            stroke="#00ffa3" stroke-width="1.2" />
+                        <path d="M10 13V9C10 6.239 12.239 4 15 4C17.761 4 20 6.239 20 9V13" stroke="#00ffa3"
+                            stroke-width="1.2" stroke-linecap="round" />
+                        <circle cx="15" cy="20" r="2" fill="#00ffa3" />
+                    </svg>
+                    <span>PrivVault</span>
+                </div>
+            </div>
+
+            <div class="topbar-center">
+                <div class="search-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="text" id="search-input" placeholder="Search entries... (Ctrl+F)" autocomplete="off"
+                        maxlength="200" />
+                    <button class="btn-icon-only search-clear hidden" id="search-clear">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="topbar-right">
+                <div class="auto-lock-indicator" id="auto-lock-indicator" title="Auto-lock timer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span id="lock-countdown"></span>
+                </div>
+                <button class="btn-icon-only" id="gen-pw-topbar" title="Password Generator (Ctrl+G)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" />
+                        <circle cx="8" cy="14" r="1" fill="currentColor" />
+                        <circle cx="12" cy="14" r="1" fill="currentColor" />
+                        <circle cx="16" cy="14" r="1" fill="currentColor" />
+                        <path d="M8 7V5a4 4 0 0 1 8 0v2" />
+                    </svg>
+                </button>
+                <button class="btn-icon-only" id="settings-btn" title="Settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06
+                     a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09
+                     A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83
+                     l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09
+                     A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83
+                     l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09
+                     a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83
+                     l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09
+                     a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                </button>
+                <button class="btn-icon-only danger" id="lock-btn" title="Lock Vault (Ctrl+L)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="app-layout">
+
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all">All</button>
+                        <button class="filter-tab" data-filter="password">Passwords</button>
+                        <button class="filter-tab" data-filter="note">Notes</button>
+                    </div>
+                </div>
+
+                <div class="tag-filter" id="tag-filter-bar">
+                    <span class="tag-filter-label">Tags:</span>
+                    <div id="tag-chips" class="tag-chips"></div>
+                </div>
+
+                <div class="sidebar-list" id="entry-list">
+                    <!-- Entries rendered here -->
+                </div>
+
+                <div class="sidebar-footer">
+                    <button class="btn btn-primary btn-full" id="add-entry-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        New Entry
+                    </button>
+                    <div class="sidebar-actions">
+                        <button class="btn btn-ghost btn-sm" id="export-vault-btn" title="Export Vault">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            Export
+                        </button>
+                        <button class="btn btn-ghost btn-sm" id="import-vault-btn" title="Import Vault">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                            Import
+                        </button>
+                        <input type="file" id="import-file-input" accept=".privvault" class="hidden" />
+                    </div>
+                    <div class="vault-stats" id="vault-stats"></div>
+                </div>
+            </aside>
+
+            <!-- Main Panel -->
+            <main class="main-panel" id="main-panel">
+
+                <!-- Welcome / Empty State -->
+                <div id="welcome-view" class="panel-view active">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-icon">
+                            <rect x="15" y="35" width="50" height="35" rx="5" fill="#00ffa3" fill-opacity="0.08"
+                                stroke="#00ffa3" stroke-opacity="0.4" stroke-width="1.5" />
+                            <path d="M25 35V25C25 16.716 31.716 10 40 10C48.284 10 55 16.716 55 25V35" stroke="#00ffa3"
+                                stroke-opacity="0.4" stroke-width="1.5" stroke-linecap="round" />
+                            <circle cx="40" cy="52" r="5" fill="#00ffa3" fill-opacity="0.4" />
+                            <line x1="40" y1="57" x2="40" y2="62" stroke="#00ffa3" stroke-opacity="0.4"
+                                stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                        <h2>Vault Unlocked</h2>
+                        <p>Select an entry from the sidebar or create a new one to get started.</p>
+                        <div class="shortcuts-list">
+                            <div class="shortcut-item">
+                                <kbd>Ctrl</kbd>+<kbd>N</kbd> <span>New Entry</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <kbd>Ctrl</kbd>+<kbd>F</kbd> <span>Search</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <kbd>Ctrl</kbd>+<kbd>G</kbd> <span>Generator</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <kbd>Ctrl</kbd>+<kbd>L</kbd> <span>Lock</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <kbd>Ctrl</kbd>+<kbd>S</kbd> <span>Save Entry</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Entry Detail / Edit View -->
+                <div id="entry-view" class="panel-view hidden">
+                    <div class="entry-header">
+                        <div class="entry-type-icon" id="entry-type-icon"></div>
+                        <div class="entry-title-wrap">
+                            <input type="text" id="entry-title" class="entry-title-input" placeholder="Entry title..."
+                                maxlength="200" />
+                            <div class="entry-meta" id="entry-meta"></div>
+                        </div>
+                        <div class="entry-actions">
+                            <button class="btn btn-ghost btn-sm" id="delete-entry-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    class="icon-xs">
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                    <path d="M10 11v6" />
+                                    <path d="M14 11v6" />
+                                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                                </svg>
+                                Delete
+                            </button>
+                            <button class="btn btn-primary btn-sm" id="save-entry-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    class="icon-xs">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                                    <polyline points="17 21 17 13 7 13 7 21" />
+                                    <polyline points="7 3 7 8 15 8" />
+                                </svg>
+                                Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Password Entry Fields -->
+                    <div id="password-fields" class="entry-fields">
+                        <div class="field-group">
+                            <label>Username / Email</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="field-username" placeholder="username@example.com"
+                                    autocomplete="off" maxlength="500" />
+                                <button class="btn-icon-copy" data-copy="username" title="Copy username">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        class="icon-xs">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <label>Password</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="field-password" placeholder="••••••••••••" autocomplete="off"
+                                    maxlength="1000" />
+                                <button class="toggle-pw" id="toggle-field-pw" type="button"
+                                    aria-label="Toggle password visibility">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        class="icon-sm">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                </button>
+                                <button class="btn-icon-copy" data-copy="password" title="Copy password">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        class="icon-xs">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                    </svg>
+                                </button>
+                                <button class="btn-icon-only accent-btn" id="gen-field-pw" title="Generate Password">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        class="icon-xs">
+                                        <polyline points="23 4 23 10 17 10" />
+                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="pw-strength-row" id="field-pw-strength-row">
+                                <div class="strength-bar-wrap sm">
+                                    <div class="strength-bar" id="field-strength-bar"></div>
+                                </div>
+                                <span class="strength-label sm" id="field-strength-label"></span>
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <label>Website / URL</label>
+                            <div class="input-wrapper">
+                                <input type="url" id="field-url" placeholder="https://example.com" autocomplete="off"
+                                    maxlength="2000" />
+                                <button class="btn-icon-only" id="open-url-btn" title="Open URL">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        class="icon-xs">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                        <polyline points="15 3 21 3 21 9" />
+                                        <line x1="10" y1="14" x2="21" y2="3" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <label>Tags</label>
+                            <div class="tags-input-wrap">
+                                <div class="tags-display" id="tags-display"></div>
+                                <input type="text" id="tag-input" placeholder="Add tag, press Enter..."
+                                    maxlength="50" />
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <label>Notes</label>
+                            <textarea id="field-notes" placeholder="Additional notes (stored encrypted)..." rows="5"
+                                maxlength="10000"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Secure Note Fields -->
+                    <div id="note-fields" class="entry-fields hidden">
+                        <div class="field-group">
+                            <label>Secure Note</label>
+                            <textarea id="note-content" placeholder="Your secure note content (encrypted at rest)..."
+                                rows="15" maxlength="50000"></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label>Tags</label>
+                            <div class="tags-input-wrap">
+                                <div class="tags-display" id="note-tags-display"></div>
+                                <input type="text" id="note-tag-input" placeholder="Add tag, press Enter..."
+                                    maxlength="50" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Entry Type Selector (for new entries) -->
+                    <div id="entry-type-selector" class="hidden">
+                        <div class="type-buttons">
+                            <button class="type-btn active" data-type="password">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="7" width="20" height="14" rx="2" />
+                                    <circle cx="8" cy="14" r="1" fill="currentColor" />
+                                    <circle cx="12" cy="14" r="1" fill="currentColor" />
+                                    <circle cx="16" cy="14" r="1" fill="currentColor" />
+                                    <path d="M8 7V5a4 4 0 0 1 8 0v2" />
+                                </svg>
+                                Password
+                            </button>
+                            <button class="type-btn" data-type="note">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                    <line x1="16" y1="13" x2="8" y2="13" />
+                                    <line x1="16" y1="17" x2="8" y2="17" />
+                                    <polyline points="10 9 9 9 8 9" />
+                                </svg>
+                                Secure Note
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- ==================== PASSWORD GENERATOR MODAL ==================== -->
+    <div id="generator-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Password Generator</h3>
+                <button class="btn-icon-only" id="close-generator">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="generated-pw-display">
+                    <span id="generated-password" class="monospace">Click Generate</span>
+                    <button class="btn-icon-only" id="copy-generated-pw" title="Copy">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-sm">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="pw-strength-row">
+                    <div class="strength-bar-wrap">
+                        <div class="strength-bar" id="gen-strength-bar"></div>
+                    </div>
+                    <span class="strength-label" id="gen-strength-label"></span>
+                </div>
+
+                <div class="gen-options">
+                    <div class="gen-option">
+                        <label>Length: <strong id="length-value">20</strong></label>
+                        <input type="range" id="pw-length" min="8" max="128" value="20" />
+                    </div>
+                    <div class="gen-toggles">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="include-uppercase" checked />
+                            <span class="toggle-track"></span>
+                            Uppercase (A–Z)
+                        </label>
+                        <label class="toggle-label">
+                            <input type="checkbox" id="include-lowercase" checked />
+                            <span class="toggle-track"></span>
+                            Lowercase (a–z)
+                        </label>
+                        <label class="toggle-label">
+                            <input type="checkbox" id="include-numbers" checked />
+                            <span class="toggle-track"></span>
+                            Numbers (0–9)
+                        </label>
+                        <label class="toggle-label">
+                            <input type="checkbox" id="include-symbols" checked />
+                            <span class="toggle-track"></span>
+                            Symbols (!@#$...)
+                        </label>
+                        <label class="toggle-label">
+                            <input type="checkbox" id="exclude-ambiguous" />
+                            <span class="toggle-track"></span>
+                            Exclude Ambiguous (0, O, l, 1)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="gen-actions">
+                    <button class="btn btn-primary btn-full" id="generate-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                            <polyline points="23 4 23 10 17 10" />
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                        </svg>
+                        Generate
+                    </button>
+                    <button class="btn btn-secondary" id="use-generated-pw">
+                        Use This Password
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SETTINGS MODAL ==================== -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="btn-icon-only" id="close-settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>Security</h4>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span>Auto-Lock Timeout</span>
+                            <small>Lock vault after inactivity</small>
+                        </div>
+                        <select id="autolock-select" class="setting-select">
+                            <option value="1">1 minute</option>
+                            <option value="5" selected>5 minutes</option>
+                            <option value="15">15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="0">Never</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span>Clipboard Clear Delay</span>
+                            <small>Auto-clear copied password</small>
+                        </div>
+                        <select id="clipboard-delay-select" class="setting-select">
+                            <option value="10">10 seconds</option>
+                            <option value="15" selected>15 seconds</option>
+                            <option value="20">20 seconds</option>
+                            <option value="30">30 seconds</option>
+                            <option value="60">1 minute</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Vault</h4>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span>Backup Reminder</span>
+                            <small>Remind to export vault</small>
+                        </div>
+                        <label class="toggle-label">
+                            <input type="checkbox" id="backup-reminder" checked />
+                            <span class="toggle-track"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <button class="btn btn-secondary btn-sm" id="change-master-pw-btn">
+                            Change Master Password
+                        </button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>About</h4>
+                    <div class="about-info">
+                        <p><strong>PrivVault</strong> v1.0.0</p>
+                        <p>by <span class="accent">PrivMITLab</span></p>
+                        <p class="muted">AES-256-GCM encryption + Argon2id key derivation</p>
+                        <p class="muted">100% client-side. Zero knowledge. Zero tracking.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CHANGE MASTER PW MODAL ==================== -->
+    <div id="change-pw-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Change Master Password</h3>
+                <button class="btn-icon-only" id="close-change-pw">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Current Master Password</label>
+                    <input type="password" id="current-master-pw" placeholder="Current password..." maxlength="512" />
+                </div>
+                <div class="form-group">
+                    <label>New Master Password</label>
+                    <input type="password" id="new-master-pw-change" placeholder="New password..." maxlength="512" />
+                    <div class="strength-bar-wrap">
+                        <div class="strength-bar" id="change-strength-bar"></div>
+                    </div>
+                    <span class="strength-label" id="change-strength-label"></span>
+                </div>
+                <div class="form-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="confirm-new-master-pw" placeholder="Confirm new password..."
+                        maxlength="512" />
+                </div>
+                <div id="change-pw-error" class="error-msg hidden"></div>
+                <button class="btn btn-primary btn-full" id="confirm-change-pw-btn">
+                    Update Master Password
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CONFIRM DELETE MODAL ==================== -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-card modal-sm">
+            <div class="modal-header">
+                <h3>Confirm Delete</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">Are you sure you want to delete this entry?</p>
+                <div class="confirm-actions">
+                    <button class="btn btn-ghost" id="confirm-cancel">Cancel</button>
+                    <button class="btn btn-danger" id="confirm-ok">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST NOTIFICATIONS ==================== -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- ==================== CLIPBOARD COUNTDOWN ==================== -->
+    <div id="clipboard-countdown" class="clipboard-countdown hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+        Clipboard clears in <strong id="clipboard-timer">15</strong>s
+    </div>
+
+    <!-- Scripts -->
+    <script src="utils.js"></script>
+    <script src="crypto.js"></script>
+    <script src="storage.js"></script>
+    <script src="ui.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
